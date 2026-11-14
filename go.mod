@@ -1,4 +1,4 @@
-module hour-record-api
+module wk-server
 
 go 1.24.0
 

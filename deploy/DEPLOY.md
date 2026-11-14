@@ -6,7 +6,7 @@
 
 ```bash
 cd ~/Code/WeChatDev/worktime/wk-server
-GOOS=linux GOARCH=amd64 go build -o hour-record-api .
+GOOS=linux GOARCH=amd64 go build -o wk-server .
 ```
 
 ## 1. 服务器装 MySQL
@@ -16,28 +16,28 @@ ssh root@服务器IP
 apt update && apt install -y mysql-server caddy
 systemctl enable --now mysql
 mysql -e "CREATE USER 'hourrec'@'localhost' IDENTIFIED BY '强密码';
-CREATE DATABASE hour_record DEFAULT CHARSET utf8mb4;
-GRANT ALL ON hour_record.* TO 'hourrec'@'localhost';"
+CREATE DATABASE worktime DEFAULT CHARSET utf8mb4;
+GRANT ALL ON worktime.* TO 'hourrec'@'localhost';"
 ```
 
 ## 2. 上传程序
 
 ```bash
 # 本机执行
-scp hour-record-api root@服务器IP:/opt/hour-record/hour-record-api
-scp deploy/hour-record.service deploy/env.example root@服务器IP:/tmp/
+scp wk-server root@服务器IP:/opt/wk-server/wk-server
+scp deploy/wk-server.service deploy/env.example root@服务器IP:/tmp/
 scp deploy/Caddyfile root@服务器IP:/tmp/
 ```
 
 ## 3. 服务器上配置并启动
 
 ```bash
-cd /opt/hour-record
+cd /opt/wk-server
 cp /tmp/env.example env && vim env          # 填入真实 MySQL 密码和 WX_SECRET
-chmod +x hour-record-api
-cp /tmp/hour-record.service /etc/systemd/system/
+chmod +x wk-server
+cp /tmp/wk-server.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now hour-record
+systemctl enable --now wk-server
 curl http://127.0.0.1:8080/ping             # 验证: pong
 ```
 
@@ -70,15 +70,15 @@ mp.weixin.qq.com → 开发管理 → 开发设置 → 服务器域名：
 ## 日常运维
 
 ```bash
-systemctl status hour-record     # 看状态
-journalctl -u hour-record -f     # 看日志
-systemctl restart hour-record    # 重启
-# 更新代码：本机重新编译 → scp 覆盖 → systemctl restart hour-record
+systemctl status wk-server      # 看状态
+journalctl -u wk-server -f      # 看日志
+systemctl restart wk-server     # 重启
+# 更新代码：本机重新编译 → scp 覆盖 → systemctl restart wk-server
 ```
 
 ## 回滚/备份
 
 ```bash
 # 数据库备份（建议加 crontab 每日一次）
-mysqldump hour_record > /root/hour_record_$(date +%F).sql
+mysqldump worktime > /root/worktime_$(date +%F).sql
 ```

@@ -1,4 +1,4 @@
-# hour-record-api
+# wk-server
 
 工时记录小程序的 Go 后端服务。配套前端见 `../wk-miniapp`，项目总览见 `../README.md`。
 
@@ -17,7 +17,7 @@ worktime/
 
 ## 运行
 
-1. 本机 MySQL（默认 `127.0.0.1:3306`），数据库和表**自动创建**（库名 `hour_record`）。
+1. 本机 MySQL（默认 `127.0.0.1:3306`），数据库和表**自动创建**（本地库名 `hour_record`；生产部署见 `deploy/DEPLOY.md`，生产库名 `worktime`）。
 2. 一键启动（推荐）：
 
 ```bash

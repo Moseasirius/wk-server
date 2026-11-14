@@ -765,7 +765,7 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	w.Header().Set("Content-Type", "text/csv;charset=utf-8")
-	w.Header().Set("Content-Disposition", "attachment; filename=hour_records.csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=worktime.csv")
 	cw := csv.NewWriter(w)
 	cw.Write([]string{"记录ID", "开始时间", "结束时间", "总时长(小时)", "加班时长(小时)", "备注"})
 	for rows.Next() {

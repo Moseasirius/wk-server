@@ -5,16 +5,16 @@ Wants=mysql.service
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/hour-record
-EnvironmentFile=/opt/hour-record/env
-ExecStart=/opt/hour-record/hour-record-api
+WorkingDirectory=/opt/wk-server
+EnvironmentFile=/opt/wk-server/env
+ExecStart=/opt/wk-server/wk-server
 Restart=always
 RestartSec=3
 
 # 安全加固
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/opt/hour-record
+ReadWritePaths=/opt/wk-server
 
 [Install]
 WantedBy=multi-user.target
