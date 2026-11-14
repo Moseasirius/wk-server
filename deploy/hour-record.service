@@ -1,0 +1,20 @@
+[Unit]
+Description=Hour Record API (工时记录后端)
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/hour-record
+EnvironmentFile=/opt/hour-record/env
+ExecStart=/opt/hour-record/hour-record-api
+Restart=always
+RestartSec=3
+
+# 安全加固
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/hour-record
+
+[Install]
+WantedBy=multi-user.target

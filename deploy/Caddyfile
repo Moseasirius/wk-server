@@ -1,0 +1,5 @@
+# /etc/caddy/Caddyfile
+# 替换成你的备案域名，Caddy 自动申请续期 HTTPS 证书
+工时.你的域名.com {
+	reverse_proxy 127.0.0.1:8080
+}
