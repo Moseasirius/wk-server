@@ -1,6 +1,6 @@
 # hour-record-api
 
-工时记录小程序的 Go 后端服务。配套前端见 `../miniapp`，项目总览见 `../README.md`。
+工时记录小程序的 Go 后端服务。配套前端见 `../wk-miniapp`，项目总览见 `../README.md`。
 
 核心功能：上下班打卡（自动交替/自动结转）、补卡与补下班、按用户标准时间计算工时与加班、周/月/年统计、月历按天汇总、CSV 导出、openid 鉴权。
 
@@ -8,9 +8,9 @@
 
 ```
 worktime/
-├── miniapp/          # 微信小程序前端（独立仓库）
+├── wk-miniapp/       # 微信小程序前端（独立仓库）
 │   └── pages/index/  # 主页：底部Tab切换 日历视图 / 打卡视图
-└── server/           # Go 后端（本目录）
+└── wk-server/        # Go 后端（本目录）
     ├── main.go       # 全部接口 + 数据库初始化
     └── start.sh      # 一键启动脚本
 ```
@@ -78,7 +78,7 @@ go run main.go
 
 ## 前端使用
 
-1. 微信开发者工具打开 `worktime/miniapp`。
+1. 微信开发者工具打开 `worktime/wk-miniapp`。
 2. 「详情 → 本地设置」勾选**不校验合法域名**（开发阶段用 http）。
 3. `pages/index/index.js` 顶部 `baseUrl`：模拟器 `http://127.0.0.1:8080`；真机改电脑局域网 IP；上线改 HTTPS 域名。
 4. 没有后端/密钥时，把 `index.js` 里 `MOCK` 改为 `true` 可用模拟数据测试 UI。
