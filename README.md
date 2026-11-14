@@ -1,24 +1,21 @@
 # hour-record-api
 
-工时记录小程序项目：微信小程序前端（`../SOWT`）+ Go 后端服务（本目录）。
+工时记录小程序的 Go 后端服务。配套前端见 `../miniapp`，项目总览见 `../README.md`。
 
-核心功能：上下班打卡、按用户设置的标准时间自动计算工时与加班、日/周/月/年统计（周条/月历/年月卡片视图）、CSV 导出。
+核心功能：上下班打卡（自动交替/自动结转）、补卡与补下班、按用户标准时间计算工时与加班、周/月/年统计、月历按天汇总、CSV 导出、openid 鉴权。
 
 ## 目录结构
 
 ```
-WeChatDev/
-├── SOWT/                    # 微信小程序前端
-│   └── pages/index/         # 主页面（打卡 + 统计 + 明细）
-│       ├── index.wxml       # 顶部打卡卡 / Tab / 概览 / 日历视图 / 明细
-│       ├── index.js         # 实时时钟、打卡、分页、统计、导出
-│       └── index.wxss
-└── gowork/hour-record-api/  # Go 后端（本目录）
-    ├── main.go
-    └── start.sh             # 一键启动脚本
+worktime/
+├── miniapp/          # 微信小程序前端（独立仓库）
+│   └── pages/index/  # 主页：底部Tab切换 日历视图 / 打卡视图
+└── server/           # Go 后端（本目录）
+    ├── main.go       # 全部接口 + 数据库初始化
+    └── start.sh      # 一键启动脚本
 ```
 
-## 后端运行
+## 运行
 
 1. 本机 MySQL（默认 `127.0.0.1:3306`），数据库和表**自动创建**（库名 `hour_record`）。
 2. 一键启动（推荐）：
@@ -32,7 +29,7 @@ WeChatDev/
 手动启动：
 
 ```bash
-export MYSQL_DSN='mosea:***@tcp(127.0.0.1:3306)/hour_record?charset=utf8mb4&loc=Local'
+export MYSQL_DSN='user:pass@tcp(127.0.0.1:3306)/hour_record?charset=utf8mb4&loc=Local'
 export WX_APPID=你的appid
 export WX_SECRET=你的secret
 go run main.go
@@ -51,39 +48,37 @@ go run main.go
 
 ## 接口一览
 
+除登录接口外，所有请求需携带 `openid`，后端校验其与 `user_id` 匹配（防止伪造 user_id 操作他人数据），不匹配返回「登录状态无效」。
+
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `/ping` | GET | 健康检查 |
-| `/api/wx/login` | POST | 微信登录，返回 `{openid, user_id}` |
+| `/api/wx/login` | POST | `{code}`，微信登录，返回 `{openid, user_id}` |
 | `/api/user/save` | POST | 保存昵称/头像/标准上下班时间，返回 `user_id` |
-| `/api/record/start` | POST | 上班打卡 `{user_id, remark}` |
-| `/api/record/end` | POST | 下班打卡 `{user_id}` |
-| `/api/record/add` | POST | 手动补卡 `{user_id, start_time, end_time, remark}`，时间支持 `HH:MM` 或 RFC3339 |
-| `/api/record/delete` | POST | 删除记录 `{user_id, id}` |
-| `/api/record/list` | POST | `{user_id, tab, offset, page, page_size}`，tab: 0日/1周/2月/3年；`offset` 翻历史时段；返回分页明细 + 全时段按天（年按月）汇总 `summary` + 范围文案 `range` |
-| `/api/stats` | POST | `{user_id}`，返回当日/周/月/年的天数、总工时、加班 |
-| `/api/record/export` | GET | CSV 导出 `?user_id=1` |
+| `/api/record/start` | POST | 上班打卡 `{user_id, openid, remark?}`。已有未结束记录时**自动结转下班**再开新记录；跨天悬空记录结转为前一天 23:59:59 |
+| `/api/record/end` | POST | 下班打卡 `{user_id, openid}` 结束当前记录；或 `{user_id, openid, id, end_time}` **补下班**（给指定悬空记录补结束时间） |
+| `/api/record/add` | POST | 补卡 `{user_id, openid, start_time, end_time, remark?}` |
+| `/api/record/delete` | POST | 删除记录 `{user_id, openid, id}` |
+| `/api/record/list` | POST | `{user_id, openid, tab, offset?, date?, page, page_size}`，tab: 0日/1周/2月/3年；`offset` 翻历史时段；`date`(YYYY-MM-DD) 查指定日全部打卡；返回分页明细 + 按天汇总 `summary` + 范围文案 `range` |
+| `/api/stats` | POST | `{user_id, openid}`，返回当日/周/月/年的天数、总工时、加班 |
+| `/api/record/export` | GET | CSV 导出 `?user_id=&openid=` |
+
+时间格式说明（`start_time`/`end_time`）：`HH:MM`（按今天）、`YYYY-MM-DD HH:MM[:SS]`（指定日期，补卡用）、RFC3339。
 
 响应统一为 `{code: 0/-1, msg, data}`。
 
 ## 设计说明
 
 - 时间字段统一 **BIGINT 存 Unix 秒**，规避 MySQL 时区问题。
-- 总时长 = 下班 − 上班；加班时长 = 结束时间超出「当天标准下班时间」的部分，由**服务端**按用户设置计算。
-- 打卡防重：有未结束记录时不能再上班打卡。
-- 前端页面结构（参考钉钉风格）：深色打卡卡（实时时钟 + 圆形打卡按钮 + 今日工时/加班）→ 日/周/月/年 Tab → 时段概览（总工时/加班/出勤）→ 周条/月历/年月卡片 → 单行打卡明细。
+- 打卡自动交替：无未结束记录 → 打卡记为上班；有未结束记录 → 自动结转下班再开新记录。一天可多次打卡。
+- 统计口径：每天只取**最早上班 + 最晚下班**计算工时与加班（多次打卡不叠加）。
+- 忘打下班兜底：隔天上班打卡时，前一天悬空记录自动结转为当天 23:59:59（当天内结转则用当前时间）。
+- 加班 = 结束时间超出「当天标准下班时间」的部分，由服务端按用户设置计算。
+- 登录态：小程序 wx.login 换 openid，后续请求自动携带，服务端校验归属。
 
 ## 前端使用
 
-1. 微信开发者工具打开 `WeChatDev/SOWT`。
+1. 微信开发者工具打开 `worktime/miniapp`。
 2. 「详情 → 本地设置」勾选**不校验合法域名**（开发阶段用 http）。
-3. 真机调试时把 `pages/index/index.js` 里的 `baseUrl` 改成电脑局域网 IP。
+3. `pages/index/index.js` 顶部 `baseUrl`：模拟器 `http://127.0.0.1:8080`；真机改电脑局域网 IP；上线改 HTTPS 域名。
 4. 没有后端/密钥时，把 `index.js` 里 `MOCK` 改为 `true` 可用模拟数据测试 UI。
-
-## 测试数据
-
-`user_id=2`（测试账号）预置了 12 个工作日打卡数据（标准时间 9:00–17:00，含加班），可用 `/api/record/delete` 或页面上的删除按钮清理：
-
-```bash
-mysql -umosea -p*** hour_record -e "DELETE FROM hour_records WHERE user_id=2 AND remark IN ('正常','加班');"
-```
