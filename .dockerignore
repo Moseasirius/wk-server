@@ -1,0 +1,5 @@
+wk-server
+hour-record-api
+deploy/
+*.log
+.DS_Store
